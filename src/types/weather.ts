@@ -21,7 +21,7 @@ export interface WeatherData {
       id: number;
       main: string;
       description: string;
-      icon: string;
+      icon: string; // Filename like 113.png
     };
   };
   hourly: {
@@ -31,7 +31,7 @@ export interface WeatherData {
       id: number;
       main: string;
       description: string;
-      icon: string;
+      icon: string; // Filename like 113.png
     };
   }[];
   daily: {
@@ -50,7 +50,7 @@ export interface WeatherData {
       id: number;
       main: string;
       description: string;
-      icon: string;
+      icon: string; // Filename like 113.png
     };
   }[];
   alerts?: {

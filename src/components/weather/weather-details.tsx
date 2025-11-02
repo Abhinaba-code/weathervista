@@ -36,7 +36,8 @@ const DetailCard = ({
 );
 
 export default function WeatherDetails({ data }: WeatherDetailsProps) {
-  const { current } = data;
+  const { current, daily } = data;
+  const todayForecast = daily[0];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-8">
@@ -49,10 +50,10 @@ export default function WeatherDetails({ data }: WeatherDetailsProps) {
         </div>
       </DetailCard>
       <DetailCard title="Pressure" value={current.pressure} unit="hPa" icon={detailIcons.pressure} />
-      <DetailCard title="Visibility" value={(current.visibility / 1000).toFixed(1)} unit="km" icon={detailIcons.visibility} />
+      <DetailCard title="Visibility" value={current.visibility.toFixed(1)} unit="km" icon={detailIcons.visibility} />
       <DetailCard title="UV Index" value={current.uvi} icon={detailIcons.uv} />
-      <DetailCard title="Sunrise" value={format(new Date(current.sunrise * 1000), 'h:mm a')} icon={detailIcons.sunrise} />
-      <DetailCard title="Sunset" value={format(new Date(current.sunset * 1000), 'h:mm a')} icon={detailIcons.sunset} />
+      <DetailCard title="Sunrise" value={format(new Date(todayForecast.sunrise), 'h:mm a')} icon={detailIcons.sunrise} />
+      <DetailCard title="Sunset" value={format(new Date(todayForecast.sunset), 'h:mm a')} icon={detailIcons.sunset} />
     </div>
   );
 }

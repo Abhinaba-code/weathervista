@@ -33,6 +33,18 @@ const nextConfig: NextConfig = {
         hostname: 'openweathermap.org',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'cdn.weatherapi.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.weatherapi.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

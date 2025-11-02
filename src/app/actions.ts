@@ -6,67 +6,106 @@ import { processWeatherAlerts } from "@/ai/flows/process-weather-alerts";
 export async function getWeatherData(
   city: string
 ): Promise<WeatherData | { error: string }> {
-  const apiKey = process.env.OPENWEATHER_API_KEY;
+  const apiKey = process.env.WEATHERAPI_API_KEY;
   if (!apiKey) {
     return { error: "API key is not configured." };
   }
 
   try {
-    // 1. Get coordinates for the city
-    const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${apiKey}`;
-    const geoResponse = await fetch(geoUrl, { next: { revalidate: 3600 } });
-    if (!geoResponse.ok) {
-        const errorData = await geoResponse.json();
-        throw new Error(`Failed to fetch coordinates: ${errorData.message || geoResponse.statusText}`);
-    }
-    const geoData = await geoResponse.json();
-    if (geoData.length === 0) {
-      return { error: `City not found: ${city}` };
-    }
-    const { lat, lon, name, country } = geoData[0];
-
-    // 2. Get weather data using coordinates
-    const weatherUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely&appid=${apiKey}&units=metric`;
+    const weatherUrl = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&days=5&aqi=no&alerts=yes`;
+    
     const weatherResponse = await fetch(weatherUrl, { next: { revalidate: 600 } });
-     if (!weatherResponse.ok) {
-        const errorData = await weatherResponse.json();
-        throw new Error(`Failed to fetch weather data: ${errorData.message || weatherResponse.statusText}`);
-    }
-    const weatherData = await weatherResponse.json();
 
-    // 3. Process weather alerts with AI if they exist
-    let processedAlerts = weatherData.alerts;
-    if (weatherData.alerts && weatherData.alerts.length > 0) {
+    if (!weatherResponse.ok) {
+      const errorData = await weatherResponse.json();
+      throw new Error(errorData.error.message || `Failed to fetch weather data: ${weatherResponse.statusText}`);
+    }
+    
+    const data = await weatherResponse.json();
+
+    let processedAlerts;
+    if (data.alerts && data.alerts.alert.length > 0) {
       try {
         const alertSummary = await processWeatherAlerts({
-          location: name,
-          alerts: weatherData.alerts.map((a: any) => a.event),
+          location: data.location.name,
+          alerts: data.alerts.alert.map((a: any) => a.headline),
         });
-        // Replace original alerts with a single, summarized alert
         processedAlerts = [{
           sender_name: 'WeatherVista AI',
           event: 'Weather Alert Summary',
           description: alertSummary.summary,
-          start: weatherData.alerts[0].start,
-          end: weatherData.alerts[0].end,
+          start: new Date(data.alerts.alert[0].effective).getTime() / 1000,
+          end: new Date(data.alerts.alert[0].expires).getTime() / 1000,
           tags: []
         }];
       } catch (aiError) {
         console.error("AI processing failed:", aiError);
-        // Fallback to original alerts if AI fails
-        processedAlerts = weatherData.alerts;
+        processedAlerts = data.alerts.alert.map((a: any) => ({
+            sender_name: "WeatherAPI",
+            event: a.event,
+            start: new Date(a.effective).getTime() / 1000,
+            end: new Date(a.expires).getTime() / 1000,
+            description: a.desc,
+            tags: [],
+        }));
       }
     }
 
-
     const transformedData: WeatherData = {
-      location: { city: name, country, lat, lon },
-      current: {
-        ...weatherData.current,
-        weather: weatherData.current.weather[0],
+      location: {
+        city: data.location.name,
+        country: data.location.country,
+        lat: data.location.lat,
+        lon: data.location.lon,
       },
-      hourly: weatherData.hourly.slice(0, 24).map((h: any) => ({ ...h, weather: h.weather[0] })),
-      daily: weatherData.daily.slice(0, 5).map((d: any) => ({ ...d, weather: d.weather[0] })),
+      current: {
+        dt: data.current.last_updated_epoch,
+        sunrise: new Date(data.forecast.forecastday[0].astro.sunrise).getTime(),
+        sunset: new Date(data.forecast.forecastday[0].astro.sunset).getTime(),
+        temp: data.current.temp_c,
+        feels_like: data.current.feelslike_c,
+        pressure: data.current.pressure_mb,
+        humidity: data.current.humidity,
+        uvi: data.current.uv,
+        visibility: data.current.vis_km,
+        wind_speed: data.current.wind_kph / 3.6, // convert kph to m/s
+        wind_deg: data.current.wind_degree,
+        weather: {
+          id: data.current.condition.code,
+          main: data.current.condition.text,
+          description: data.current.condition.text,
+          icon: data.current.condition.icon.split('/').pop()!,
+        },
+      },
+      hourly: data.forecast.forecastday[0].hour.map((h: any) => ({
+        dt: h.time_epoch,
+        temp: h.temp_c,
+        weather: {
+          id: h.condition.code,
+          main: h.condition.text,
+          description: h.condition.text,
+          icon: h.condition.icon.split('/').pop()!,
+        },
+      })),
+      daily: data.forecast.forecastday.map((d: any) => ({
+        dt: d.date_epoch,
+        sunrise: new Date(d.astro.sunrise).getTime(),
+        sunset: new Date(d.astro.sunset).getTime(),
+        temp: {
+          day: d.day.avgtemp_c,
+          min: d.day.mintemp_c,
+          max: d.day.maxtemp_c,
+          night: 0, // Not available directly
+          eve: 0, // Not available directly
+          morn: 0, // Not available directly
+        },
+        weather: {
+          id: d.day.condition.code,
+          main: d.day.condition.text,
+          description: d.day.condition.text,
+          icon: d.day.condition.icon.split('/').pop()!,
+        },
+      })),
       alerts: processedAlerts,
     };
 
