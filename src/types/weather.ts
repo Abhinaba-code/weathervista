@@ -7,8 +7,8 @@ export interface WeatherData {
   };
   current: {
     dt: number;
-    sunrise: number;
-    sunset: number;
+    sunrise: string;
+    sunset: string;
     temp: number;
     feels_like: number;
     pressure: number;
@@ -21,7 +21,7 @@ export interface WeatherData {
       id: number;
       main: string;
       description: string;
-      icon: string; // Filename like 113.png
+      icon: string; // URL path
     };
   };
   hourly: {
@@ -31,13 +31,13 @@ export interface WeatherData {
       id: number;
       main: string;
       description: string;
-      icon: string; // Filename like 113.png
+      icon: string; // URL path
     };
   }[];
   daily: {
     dt: number;
-    sunrise: number;
-    sunset: number;
+    sunrise: string;
+    sunset: string;
     temp: {
       day: number;
       min: number;
@@ -50,7 +50,7 @@ export interface WeatherData {
       id: number;
       main: string;
       description: string;
-      icon: string; // Filename like 113.png
+      icon: string; // URL path
     };
   }[];
   alerts?: {

@@ -1,7 +1,6 @@
 import type { WeatherData } from "@/types/weather";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { detailIcons } from "@/lib/weather-utils";
-import { format } from 'date-fns';
 
 type WeatherDetailsProps = {
   data: WeatherData;
@@ -52,8 +51,8 @@ export default function WeatherDetails({ data }: WeatherDetailsProps) {
       <DetailCard title="Pressure" value={current.pressure} unit="hPa" icon={detailIcons.pressure} />
       <DetailCard title="Visibility" value={current.visibility.toFixed(1)} unit="km" icon={detailIcons.visibility} />
       <DetailCard title="UV Index" value={current.uvi} icon={detailIcons.uv} />
-      <DetailCard title="Sunrise" value={format(new Date(todayForecast.sunrise), 'h:mm a')} icon={detailIcons.sunrise} />
-      <DetailCard title="Sunset" value={format(new Date(todayForecast.sunset), 'h:mm a')} icon={detailIcons.sunset} />
+      <DetailCard title="Sunrise" value={todayForecast.sunrise} icon={detailIcons.sunrise} />
+      <DetailCard title="Sunset" value={todayForecast.sunset} icon={detailIcons.sunset} />
     </div>
   );
 }
